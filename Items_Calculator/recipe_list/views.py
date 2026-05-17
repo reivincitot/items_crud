@@ -4,6 +4,9 @@ from .service import calcular_materiales
 from item_list.models import Item
 
 
+def home(request):
+    return render(request, 'recipe_list/home.html')
+
 def calcular(request):
     resultado = None
     if request.method == 'POST':

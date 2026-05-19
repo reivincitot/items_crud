@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Lista de Recetas{% endblock %}
+{% block content %}
+<h1>Recetas</h1>
+<a href="{% url 'recipe_create' %}" class="btn btn-primary mb-3">+ Nueva Receta</a>
+<ul class="list-group">
+    {% for recipe in recipes %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ recipe.recipe_name }} (produce: {{ recipe.produced_item.name }})
+            <a href="{% url 'recipe_detail' recipe.id %}" class="btn btn-sm btn-info">Ver</a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

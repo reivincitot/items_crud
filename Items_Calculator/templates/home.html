@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="text-align: center;">
+    <h1>Gestión de Recetas de Black Desert</h1>
+    <a href="{% url 'item_list:list' %}" class="btn">Gestionar Items</a>
+    <a href="{% url 'recipe_list' %}" class="btn">Gestionar Recetas</a>
+    <a href="{% url 'calcular' %}" class="btn">Calcular Materiales</a>
+</div>
+<style>
+    .btn {
+        display: inline-block;
+        margin: 20px;
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+    .btn:hover { background-color: #45a049; }
+</style>
+{% endblock %}

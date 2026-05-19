@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Calculadora de Materiales{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h1>Calcular materiales para receta</h1>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Receta:</label>
+                <select name="recipe_id" class="form-select" required>
+                    {% for receta in recetas %}
+                    <option value="{{ receta.id }}">{{ receta.recipe_name }} (produce: {{ receta.produced_item.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Cantidad:</label>
+                <input type="number" name="cantidad" value="1" min="1" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Calcular</button>
+        </form>
+
+        {% if resultado %}
+            <hr>
+            <h2>Materiales necesarios:</h2>
+            <ul class="list-group">
+                {% for nombre, cantidad in resultado.items %}
+                    <li class="list-group-item">{{ nombre }}: {{ cantidad }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

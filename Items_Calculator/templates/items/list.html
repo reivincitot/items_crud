@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Lista de Items{% endblock  %}
+{% block content %}
+    <h1>Items</h1>
+    <a href="{% url 'item_list:create' %}">+ Nuevo Item</a>
+    <ul>
+      {% for item in items %}
+        <li>{{ item.name}} ({{ item.category}}) - <a href="{% url 'item_list:delete' item.id %}">eliminar</a></li>
+    </ul>
+      {% endfor %}
+{% endblock %}

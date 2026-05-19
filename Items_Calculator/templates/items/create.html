@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h1>Crear nuevo Item</h1>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Nombre:</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Categoría:</label>
+                <select name="category" class="form-select" required>
+                    <option value="">-- seleccione --</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Tipo:</label>
+                <select name="type" class="form-select" required>
+                    <option value="">-- seleccione --</option>
+                    {% for t in types %}
+                    <option value="{{ t.id }}">{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subtipo:</label>
+                <select name="subtype" class="form-select">
+                    <option value="">-- opcional --</option>
+                    {% for st in subtypes %}
+                    <option value="{{ st.id }}">{{ st.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar Item</button>
+            <a href="{% url 'item_list:list' %}" class="btn btn-secondary">Volver</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

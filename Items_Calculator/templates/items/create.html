@@ -5,7 +5,7 @@
         <h1>Crear nuevo Item</h1>
     </div>
     <div class="card-body">
-        <form method="post">
+        <form method="post" id="itemForm">
             {% csrf_token %}
             <div class="mb-3">
                 <label class="form-label">Nombre:</label>
@@ -13,34 +13,163 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Categoría:</label>
-                <select name="category" class="form-select" required>
-                    <option value="">-- seleccione --</option>
-                    {% for cat in categories %}
-                    <option value="{{ cat.id }}">{{ cat.name }}</option>
-                    {% endfor %}
-                </select>
+                <div class="input-group">
+                    <select name="category" class="form-select" id="id_category" required>
+                        <option value="">-- seleccione --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCategoria">
+                        + Agregar
+                    </button>
+                </div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Tipo:</label>
-                <select name="type" class="form-select" required>
-                    <option value="">-- seleccione --</option>
-                    {% for t in types %}
-                    <option value="{{ t.id }}">{{ t.name }}</option>
-                    {% endfor %}
-                </select>
+                <div class="input-group">
+                    <select name="type" class="form-select" id="id_type" required>
+                        <option value="">-- seleccione --</option>
+                        {% for t in types %}
+                        <option value="{{ t.id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalTipo">
+                        + Agregar
+                    </button>
+                </div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Subtipo:</label>
-                <select name="subtype" class="form-select">
-                    <option value="">-- opcional --</option>
-                    {% for st in subtypes %}
-                    <option value="{{ st.id }}">{{ st.name }}</option>
-                    {% endfor %}
-                </select>
+                <div class="input-group">
+                    <select name="subtype" class="form-select" id="id_subtype">
+                        <option value="">-- opcional --</option>
+                        {% for st in subtypes %}
+                        <option value="{{ st.id }}">{{ st.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSubtipo">
+                        + Agregar
+                    </button>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Guardar Item</button>
             <a href="{% url 'item_list:list' %}" class="btn btn-secondary">Volver</a>
         </form>
     </div>
 </div>
+
+<!-- Modal Categoría -->
+<div class="modal fade" id="modalCategoria" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar nueva categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newCategoria" class="form-control" placeholder="Nombre de la categoría">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardarCategoria">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tipo -->
+<div class="modal fade" id="modalTipo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar nuevo tipo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newTipo" class="form-control" placeholder="Nombre del tipo">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardarTipo">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Subtipo -->
+<div class="modal fade" id="modalSubtipo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar nuevo subtipo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newSubtipo" class="form-control" placeholder="Nombre del subtipo">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardarSubtipo">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Función genérica para enviar datos y actualizar select
+    function agregarElemento(url, nombre, selectId, modalId) {
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ name: nombre })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.id) {
+                let select = document.getElementById(selectId);
+                let option = document.createElement('option');
+                option.value = data.id;
+                option.text = data.name;
+                select.add(option);
+                select.value = data.id;
+                // Cerrar modal
+                bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+                // Limpiar input
+                document.querySelector(`#${modalId} input`).value = '';
+            } else {
+                alert('Error al agregar');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    document.getElementById('guardarCategoria').onclick = function() {
+        let nombre = document.getElementById('newCategoria').value.trim();
+        if (nombre) {
+            agregarElemento("{% url 'item_list:ajax_add_category' %}", nombre, 'id_category', 'modalCategoria');
+        } else {
+            alert('Ingrese un nombre');
+        }
+    };
+    document.getElementById('guardarTipo').onclick = function() {
+        let nombre = document.getElementById('newTipo').value.trim();
+        if (nombre) {
+            agregarElemento("{% url 'item_list:ajax_add_type' %}", nombre, 'id_type', 'modalTipo');
+        } else {
+            alert('Ingrese un nombre');
+        }
+    };
+    document.getElementById('guardarSubtipo').onclick = function() {
+        let nombre = document.getElementById('newSubtipo').value.trim();
+        if (nombre) {
+            agregarElemento("{% url 'item_list:ajax_add_subtype' %}", nombre, 'id_subtype', 'modalSubtipo');
+        } else {
+            alert('Ingrese un nombre');
+        }
+    };
+</script>
 {% endblock %}

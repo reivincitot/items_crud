@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Item</h1>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Nombre:</label>
+                <input type="text" name="name" class="form-control" value="{{ item.name }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Categoría:</label>
+                <div class="input-group">
+                    <select name="category" class="form-select" required>
+                        <option value="">-- seleccione --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if cat.id == item.category.id %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCategoria">+</button>
+                </div>
+            </div>
+            <!-- Repite igual para Tipo y Subtipo, usando item.type.id y item.subtype.id -->
+            <div class="mb-3">
+                <label class="form-label">Tipo:</label>
+                <div class="input-group">
+                    <select name="type" class="form-select" required>
+                        <option value="">-- seleccione --</option>
+                        {% for t in types %}
+                        <option value="{{ t.id }}" {% if t.id == item.type.id %}selected{% endif %}>{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalTipo">+</button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subtipo:</label>
+                <div class="input-group">
+                    <select name="subtype" class="form-select">
+                        <option value="">-- opcional --</option>
+                        {% for st in subtypes %}
+                        <option value="{{ st.id }}" {% if st.id == item.subtype.id %}selected{% endif %}>{{ st.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSubtipo">+</button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+            <a href="{% url 'item_list:list' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+<!-- Incluir los mismos modales que en create.html (los modales ya existen en tu proyecto) -->
+{% endblock %}

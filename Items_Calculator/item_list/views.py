@@ -64,3 +64,22 @@ def item_delete(request, pk):
         item.delete()
         return redirect('item_list:list')
     return render(request, 'items/delete.html', {'item': item})
+
+def item_edit(request, pk):
+    item = get_object_or_404(Item, pk=pk)
+    if request.method == 'POST':
+        item.name = request.POST['name']
+        item.category_id = request.POST['category']
+        item.type_id = request.POST['type']
+        item.subtype_id = request.POST.get('subtype') or None
+        item.save()
+        return redirect('item_list:list')
+    categories = Category.objects.all()
+    types = Type.objects.all()
+    subtypes = Subtype.objects.all()
+    return render(request, 'items/edit.html', {
+        'item': item,
+        'categories': categories,
+        'types': types,
+        'subtypes': subtypes
+    })

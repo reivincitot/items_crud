@@ -57,3 +57,30 @@ def recipe_create(request):
 def recipe_detail(request, pk):
     recipe = get_object_or_404(Recipe, pk=pk)
     return render(request, 'recipes/detail.html', {'recipe': recipe})
+
+def recipe_edit(request, pk):
+    recipe = get_object_or_404(Recipe, pk=pk)
+    if request.method == 'POST':
+        recipe.recipe_name = request.POST['recipe_name']
+        recipe.produced_item_id = request.POST['produced_item']
+        recipe.save()
+        # Eliminar ingredientes existentes (para reemplazarlos por los nuevos del POST)
+        recipe.ingredients.all().delete()
+        # Procesar ingredientes dinámicos
+        i = 0
+        while f'ingredient_item_{i}' in request.POST:
+            item_id = request.POST[f'ingredient_item_{i}']
+            quantity = request.POST[f'ingredient_quantity_{i}']
+            if item_id and quantity:
+                Ingredient.objects.create(
+                    recipe=recipe,
+                    item_id=int(item_id),
+                    quantity=int(quantity)
+                )
+            i += 1
+        return redirect('recipe_list')
+    items = Item.objects.all().order_by('name')
+    return render(request, 'recipes/edit.html', {
+        'recipe': recipe,
+        'items': items,
+    })

@@ -3,7 +3,7 @@ from item_list.models import Item
 
 
 class Recipe(models.Model):
-    recipe_name = models.CharField(max_length=100)
+    recipe_name = models.CharField(max_length=100,unique=True)
     produced_item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name='recipe')
 
     def __str__(self):

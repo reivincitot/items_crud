@@ -20,9 +20,7 @@
                         <option value="{{ cat.id }}">{{ cat.name }}</option>
                         {% endfor %}
                     </select>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCategoria">
-                        + Agregar
-                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCategoria">+ Agregar</button>
                 </div>
             </div>
             <div class="mb-3">
@@ -34,9 +32,7 @@
                         <option value="{{ t.id }}">{{ t.name }}</option>
                         {% endfor %}
                     </select>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalTipo">
-                        + Agregar
-                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalTipo">+ Agregar</button>
                 </div>
             </div>
             <div class="mb-3">
@@ -48,11 +44,16 @@
                         <option value="{{ st.id }}">{{ st.name }}</option>
                         {% endfor %}
                     </select>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSubtipo">
-                        + Agregar
-                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSubtipo">+ Agregar</button>
                 </div>
             </div>
+
+            <!-- Checkbox dentro del formulario -->
+            <div class="mb-3 form-check">
+                <input type="checkbox" name="es_fabricable" class="form-check-input" id="esFabricable">
+                <label class="form-check-label" for="esFabricable">Este item se puede fabricar (tiene receta)</label>
+            </div>
+
             <button type="submit" class="btn btn-primary">Guardar Item</button>
             <a href="{% url 'item_list:list' %}" class="btn btn-secondary">Volver</a>
         </form>
@@ -137,9 +138,10 @@
                 select.add(option);
                 select.value = data.id;
                 // Cerrar modal
-                bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+                let modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                if (modal) modal.hide();
                 // Limpiar input
-                document.querySelector(`#${modalId} input`).value = '';
+                document.getElementById(modalId === 'modalCategoria' ? 'newCategoria' : (modalId === 'modalTipo' ? 'newTipo' : 'newSubtipo')).value = '';
             } else {
                 alert('Error al agregar');
             }
@@ -147,29 +149,46 @@
         .catch(error => console.error('Error:', error));
     }
 
-    document.getElementById('guardarCategoria').onclick = function() {
-        let nombre = document.getElementById('newCategoria').value.trim();
-        if (nombre) {
-            agregarElemento("{% url 'item_list:ajax_add_category' %}", nombre, 'id_category', 'modalCategoria');
-        } else {
-            alert('Ingrese un nombre');
+    // Esperar a que el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        // Botón guardar categoría
+        const btnCategoria = document.getElementById('guardarCategoria');
+        if (btnCategoria) {
+            btnCategoria.onclick = function() {
+                let nombre = document.getElementById('newCategoria').value.trim();
+                if (nombre) {
+                    agregarElemento("{% url 'item_list:ajax_add_category' %}", nombre, 'id_category', 'modalCategoria');
+                } else {
+                    alert('Ingrese un nombre');
+                }
+            };
         }
-    };
-    document.getElementById('guardarTipo').onclick = function() {
-        let nombre = document.getElementById('newTipo').value.trim();
-        if (nombre) {
-            agregarElemento("{% url 'item_list:ajax_add_type' %}", nombre, 'id_type', 'modalTipo');
-        } else {
-            alert('Ingrese un nombre');
+
+        // Botón guardar tipo
+        const btnTipo = document.getElementById('guardarTipo');
+        if (btnTipo) {
+            btnTipo.onclick = function() {
+                let nombre = document.getElementById('newTipo').value.trim();
+                if (nombre) {
+                    agregarElemento("{% url 'item_list:ajax_add_type' %}", nombre, 'id_type', 'modalTipo');
+                } else {
+                    alert('Ingrese un nombre');
+                }
+            };
         }
-    };
-    document.getElementById('guardarSubtipo').onclick = function() {
-        let nombre = document.getElementById('newSubtipo').value.trim();
-        if (nombre) {
-            agregarElemento("{% url 'item_list:ajax_add_subtype' %}", nombre, 'id_subtype', 'modalSubtipo');
-        } else {
-            alert('Ingrese un nombre');
+
+        // Botón guardar subtipo
+        const btnSubtipo = document.getElementById('guardarSubtipo');
+        if (btnSubtipo) {
+            btnSubtipo.onclick = function() {
+                let nombre = document.getElementById('newSubtipo').value.trim();
+                if (nombre) {
+                    agregarElemento("{% url 'item_list:ajax_add_subtype' %}", nombre, 'id_subtype', 'modalSubtipo');
+                } else {
+                    alert('Ingrese un nombre');
+                }
+            };
         }
-    };
+    });
 </script>
 {% endblock %}

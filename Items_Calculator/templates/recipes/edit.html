@@ -4,13 +4,13 @@
 <form method="post">
     {% csrf_token %}
     <div class="mb-3">
-        <label class="form-label">Nombre de la receta:</label>
+        <label>Nombre:</label>
         <input type="text" name="recipe_name" class="form-control" value="{{ recipe.recipe_name }}" required>
     </div>
     <div class="mb-3">
-        <label class="form-label">Item producido:</label>
+        <label>Item producido:</label>
         <select name="produced_item" class="form-select" required>
-            {% for item in items %}
+            {% for item in fabricable_items %}
             <option value="{{ item.id }}" {% if item.id == recipe.produced_item.id %}selected{% endif %}>{{ item.name }}</option>
             {% endfor %}
         </select>
@@ -19,35 +19,32 @@
     <div id="ingredientes">
         {% for ing in recipe.ingredients.all %}
         <div class="ingrediente mb-2">
-            <select name="ingredient_item_{{ forloop.counter0 }}" class="form-select d-inline w-auto">
+            <select name="ingredient_item_{{ forloop.counter0 }}">
                 <option value="">-- seleccione --</option>
-                {% for item in items %}
+                {% for item in all_items %}
                 <option value="{{ item.id }}" {% if item.id == ing.item.id %}selected{% endif %}>{{ item.name }}</option>
                 {% endfor %}
             </select>
-            <input type="number" name="ingredient_quantity_{{ forloop.counter0 }}" value="{{ ing.quantity }}" class="form-control d-inline w-auto" placeholder="Cantidad">
+            <input type="number" name="ingredient_quantity_{{ forloop.counter0 }}" value="{{ ing.quantity }}">
         </div>
         {% endfor %}
     </div>
-    <button type="button" id="agregar_ingrediente" class="btn btn-secondary mb-3">+ Agregar ingrediente</button>
-    <br>
-    <button type="submit" class="btn btn-primary">Guardar cambios</button>
-    <a href="{% url 'recipe_list' %}" class="btn btn-secondary">Cancelar</a>
+    <button type="button" id="agregar_ingrediente">+ Agregar ingrediente</button>
+    <br><br>
+    <button type="submit">Guardar cambios</button>
 </form>
-
 <script>
     let contador = {{ recipe.ingredients.count }};
     document.getElementById('agregar_ingrediente').onclick = function() {
         let div = document.createElement('div');
-        div.className = 'ingrediente mb-2';
         div.innerHTML = `
-            <select name="ingredient_item_${contador}" class="form-select d-inline w-auto">
+            <select name="ingredient_item_${contador}">
                 <option value="">-- seleccione --</option>
-                {% for item in items %}
+                {% for item in all_items %}
                 <option value="{{ item.id }}">{{ item.name }}</option>
                 {% endfor %}
             </select>
-            <input type="number" name="ingredient_quantity_${contador}" class="form-control d-inline w-auto" placeholder="Cantidad">
+            <input type="number" name="ingredient_quantity_${contador}" placeholder="Cantidad">
         `;
         document.getElementById('ingredientes').appendChild(div);
         contador++;

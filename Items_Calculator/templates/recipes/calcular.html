@@ -17,21 +17,45 @@
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label">Cantidad:</label>
+                <label class="form-label">Cantidad a fabricar:</label>
                 <input type="number" name="cantidad" value="1" min="1" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Inventario inicial (formato: nombre_item: cantidad, uno por línea):</label>
+                <textarea name="inventario" rows="4" class="form-control" placeholder="Ejemplo:
+Frasco de violencia: 10
+Elixir de vida: 5"></textarea>
             </div>
             <button type="submit" class="btn btn-primary">Calcular</button>
         </form>
 
         {% if resultado %}
             <hr>
-            <h2>Materiales necesarios:</h2>
-            <ul class="list-group">
+            <h2>Materiales base necesarios (descontando inventario):</h2>
+            <ul class="list-group mb-4">
                 {% for nombre, cantidad in resultado.items %}
                     <li class="list-group-item">{{ nombre }}: {{ cantidad }}</li>
                 {% endfor %}
             </ul>
+
+            {% if fabricar %}
+                <h2>Productos intermedios a fabricar:</h2>
+                <ul class="list-group mb-4">
+                    {% for nombre, cantidad in fabricar.items %}
+                        <li class="list-group-item">{{ nombre }}: {{ cantidad }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <h2>Estructura completa de la receta:</h2>
+            <div class="tree-view">
+                {{ arbol_html|safe }}
+            </div>
         {% endif %}
     </div>
 </div>
+<style>
+    .tree-view ul { margin-left: 20px; list-style: none; }
+    .tree-view li { margin: 5px 0; }
+</style>
 {% endblock %}

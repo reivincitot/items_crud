@@ -1,0 +1,12 @@
+<ul>
+    <li>
+        <strong>{{ node.nombre }}</strong> ({{ node.cantidad }})
+        {% if node.ingredientes %}
+            <ul>
+                {% for hijo in node.ingredientes %}
+                    {% include "recipes/tree_node.html" with node=hijo %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </li>
+</ul>

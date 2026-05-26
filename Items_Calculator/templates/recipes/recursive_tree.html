@@ -1,0 +1,22 @@
+{% load dict_extras %}
+<ul>
+    {% for item_id, data in tree.items %}
+        <li>
+            <span class="item-name">{{ data.nombre }}:</span>
+            <span class="quantity">{{ data.cantidad }}</span>
+            {% if data.ingredientes %}
+                <ul>
+                    {% for sub_id, sub_data in data.ingredientes.items %}
+                        <li>
+                            <span class="item-name">{{ sub_data.nombre }}:</span>
+                            <span class="quantity">{{ sub_data.cantidad }}</span>
+                            {% if sub_data.ingredientes %}
+                                {% include 'recipes/recursive_tree.html' with tree=sub_data.ingredientes %}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>

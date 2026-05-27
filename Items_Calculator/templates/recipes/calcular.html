@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Calculadora de Materiales{% endblock %}
 {% block content %}
 <div class="card">
@@ -34,7 +35,7 @@ Elixir de vida: 5"></textarea>
             <h2>Materiales base necesarios (descontando inventario):</h2>
             <ul class="list-group mb-4">
                 {% for nombre, cantidad in resultado.items %}
-                    <li class="list-group-item">{{ nombre }}: {{ cantidad }}</li>
+                    <li class="list-group-item">{{ nombre }}: {{ cantidad|intcomma }}</li>
                 {% endfor %}
             </ul>
 
@@ -42,7 +43,7 @@ Elixir de vida: 5"></textarea>
                 <h2>Productos intermedios a fabricar:</h2>
                 <ul class="list-group mb-4">
                     {% for nombre, cantidad in fabricar.items %}
-                        <li class="list-group-item">{{ nombre }}: {{ cantidad }}</li>
+                        <li class="list-group-item">{{ nombre }}: {{ cantidad|intcomma }}</li>
                     {% endfor %}
                 </ul>
             {% endif %}

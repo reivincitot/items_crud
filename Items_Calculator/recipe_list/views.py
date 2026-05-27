@@ -15,13 +15,15 @@ def calcular(request):
     arbol = None
     fabricar = None
     arbol_html = ''
+    recetas_context = {}  # ← siempre definido, incluso si no hay POST
+
     if request.method == 'POST':
         recipe_id = request.POST.get('recipe_id')
         cantidad = int(request.POST.get('cantidad', 1))
         inventario_text = request.POST.get('inventario', '')
         inventario = {}
-    
-        # Parsear el inventario formato "nombre_item:cantidad" por linea
+
+        # Parsear inventario
         for line in inventario_text.strip().split('\n'):
             if ':' in line:
                 nombre, cant_str = line.split(':', 1)
@@ -30,51 +32,65 @@ def calcular(request):
                     cant = int(cant_str.strip())
                 except:
                     continue
-                # Buscar item por nombre (exacto, normalizado)
                 try:
                     item = Item.objects.get(name__iexact=nombre)
                     inventario[item.id] = inventario.get(item.id, 0) + cant
                 except Item.DoesNotExist:
-                    pass  # Ignorar nombres no encontrados
+                    pass  # Ignorar
 
         receta = get_object_or_404(Recipe, pk=recipe_id)
         try:
             calculo = calcular_materiales_con_arbol(receta.produced_item.id, cantidad, inventario)
-            # Convertir IDs a nombres para mostrar
+
+            # --- Resultados base ---
             items = Item.objects.in_bulk(calculo['base'].keys())
             resultado_base = {items[item_id].name: cant for item_id, cant in calculo['base'].items() if item_id in items}
-            
-            # Estructura para fabricar (subproductos)
+            resultado = resultado_base
+
+            # --- Productos intermedios (fabricar) ---
             items_fabricar = Item.objects.in_bulk(calculo['fabricar'].keys())
             fabricar = {items_fabricar[item_id].name: cant for item_id, cant in calculo['fabricar'].items() if item_id in items_fabricar}
-            
-            # Árbol jerárquico (podemos pasarlo a la plantilla como JSON)
-            arbol = calculo['arbol']
+
+            # --- Árbol HTML ---
             arbol_html = arbol_a_html(calculo['arbol'])
-            resultado = resultado_base
-        
+
+            # --- Nueva funcionalidad: contexto de recetas para desplegables ---
+            for item_id, cantidad_fab in calculo.get('fabricar', {}).items():
+                try:
+                    receta_intermedia = Recipe.objects.select_related('produced_item').prefetch_related('ingredients__item').get(produced_item_id=item_id)
+                    recetas_context[item_id] = {
+                        'nombre': receta_intermedia.produced_item.name,
+                        'cantidad': cantidad_fab,
+                        'ingredientes': [(ing.item.name, ing.quantity) for ing in receta_intermedia.ingredients.all()]
+                    }
+                except Recipe.DoesNotExist:
+                    # Si un item marcado como fabricable no tiene receta, lo ignoramos
+                    pass
+
         except Exception as e:
             resultado = {'error': str(e)}
-    
+
+    # Obtener todas las recetas para el selector (siempre)
     recetas = Recipe.objects.all().order_by('recipe_name')
-    
+
     return render(request, 'recipes/calcular.html', {
         'recetas': recetas,
         'resultado': resultado,
         'fabricar': fabricar,
-        'arbol_html': arbol_html
+        'arbol_html': arbol_html,
+        'recetas_context': recetas_context,
     })
     
 def recipe_list(request):
     recipes = Recipe.objects.select_related('produced_item').all().order_by('recipe_name')
     ultima_receta = request.session.get('ultima_receta', None)
-    return render(request, 'recipes/list.html', {'recipes': recipes, 
-                                                'ultima_receta': ultima_receta
-                                                })
+    return render(request, 'recipes/list.html', {
+        'recipes': recipes, 
+        'ultima_receta': ultima_receta
+    })
 
 def recipe_create(request):
     if request.method == 'POST':
-        # Mejor procesar manualmente
         recipe_name = request.POST.get('recipe_name')
         produced_item_name = request.POST.get('produced_item_name')
         try:
@@ -158,15 +174,17 @@ def recipe_edit(request, pk):
         })
     
 def arbol_a_html(arbol):
-    """Convierte la estructura jerárquica del árbol en HTML anidado."""
+    """Convierte la estructura jerárquica del árbol en HTML anidado con números formateados."""
     if not arbol:
         return ''
     html = '<ul class="tree">'
     for item_id, data in arbol.items():
         nombre = data.get('nombre', 'Desconocido')
         cantidad = data.get('cantidad', 0)
+        # Formatear número con separador de miles (puntos)
+        cantidad_formateada = f"{cantidad:,}".replace(',', '.')
         ingredientes = data.get('ingredientes', {})
-        html += f'<li><strong>{nombre}</strong>: {cantidad}'
+        html += f'<li><strong>{nombre}</strong>: {cantidad_formateada}'
         if ingredientes:
             html += arbol_a_html(ingredientes)
         html += '</li>'

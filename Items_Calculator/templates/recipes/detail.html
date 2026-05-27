@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Detalle de receta{% endblock %}
 {% block content %}
 <div class="card">
@@ -12,7 +13,7 @@
         {% if recipe.ingredients.all %}
             <ul class="list-group">
                 {% for ing in recipe.ingredients.all %}
-                    <li class="list-group-item">{{ ing.quantity }} x {{ ing.item.name }}</li>
+                    <li class="list-group-item">{{ ing.quantity|intcomma }} x {{ ing.item.name }}</li>
                 {% endfor %}
             </ul>
         {% else %}

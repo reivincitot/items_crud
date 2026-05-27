@@ -1,27 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Gestor de Recetas{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">Black Desert Craft</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'item_list:list' %}">Items</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'recipe_list' %}">Recetas</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'calcular' %}">Calcular</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <div class="container mt-4">
-        {% block content %}{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Detalle de receta{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ recipe.recipe_name }}</h1>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div class="card-body">
+        <p><strong>Item producido:</strong> {{ recipe.produced_item.name }}</p>
+        <p><strong>Cantidad producida:</strong> 1 unidad</p>
+        <h3>Ingredientes:</h3>
+        {% if recipe.ingredients.all %}
+            <ul class="list-group">
+                {% for ing in recipe.ingredients.all %}
+                    <li class="list-group-item">{{ ing.quantity }} x {{ ing.item.name }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No se han definido ingredientes para esta receta.</p>
+        {% endif %}
+        <a href="{% url 'recipe_list' %}" class="btn btn-secondary mt-3">Volver a recetas</a>
+        <a href="{% url 'recipe_edit' recipe.id %}" class="btn btn-primary mt-3">Editar receta</a>
+    </div>
+</div>
+{% endblock %}

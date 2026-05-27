@@ -1,38 +1,67 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Crear Receta</h1>
-<form method="post">
-    {% csrf_token %}
-    {{ recipe_form.as_p }}
-    <h3>Ingredientes</h3>
-    <div id="ingredientes">
-        <div class="ingrediente">
-            <select name="ingredient_item_0">
-                <option value="">-- seleccione --</option>
-                {% for item in items %}
-                <option value="{{ item.id }}">{{ item.name }}</option>
-                {% endfor %}
-            </select>
-            <input type="number" name="ingredient_quantity_0" placeholder="Cantidad" step="1" min="1">
-        </div>
+<div class="card">
+    <div class="card-header">
+        <h1>Crear Receta</h1>
     </div>
-    <button type="button" id="agregar_ingrediente">+ Agregar otro ingrediente</button>
-    <br><br>
-    <button type="submit">Guardar Receta</button>
-</form>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <!-- Campo: nombre de la receta -->
+            <div class="mb-3">
+                <label class="form-label">Nombre de la receta:</label>
+                <input type="text" name="recipe_name" class="form-control" required>
+            </div>
+
+            <!-- Campo: item producido (autocompletado) -->
+            <div class="mb-3">
+                <label class="form-label">Item producido:</label>
+                <input list="fabricable-items" name="produced_item_name" class="form-control" required placeholder="Escribe para buscar...">
+                <datalist id="fabricable-items">
+                    {% for item in fabricable_items %}
+                        <option value="{{ item.name }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <h3>Ingredientes</h3>
+            <div id="ingredientes">
+                <div class="ingrediente mb-2 row g-2">
+                    <div class="col">
+                        <input list="items-list" name="ingredient_item_0" class="form-control" placeholder="Buscar item...">
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="ingredient_quantity_0" placeholder="Cantidad" step="1" min="1" class="form-control" style="width: 120px;">
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="agregar_ingrediente" class="btn btn-secondary mb-3">+ Agregar ingrediente</button>
+            <br>
+            <button type="submit" class="btn btn-primary">Guardar Receta</button>
+            <a href="{% url 'recipe_list' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+<!-- Datalist compartido para todos los ingredientes -->
+<datalist id="items-list">
+    {% for item in items %}
+        <option value="{{ item.name }}">
+    {% endfor %}
+</datalist>
+
 <script>
     let contador = 1;
     document.getElementById('agregar_ingrediente').onclick = function() {
         let div = document.createElement('div');
-        div.className = 'ingrediente';
+        div.className = 'ingrediente mb-2 row g-2';
         div.innerHTML = `
-            <select name="ingredient_item_${contador}">
-                <option value="">-- seleccione --</option>
-                {% for item in items %}
-                <option value="{{ item.id }}">{{ item.name }}</option>
-                {% endfor %}
-            </select>
-            <input type="number" name="ingredient_quantity_${contador}" placeholder="Cantidad" step="1" min="1">
+            <div class="col">
+                <input list="items-list" name="ingredient_item_${contador}" class="form-control" placeholder="Buscar item...">
+            </div>
+            <div class="col-auto">
+                <input type="number" name="ingredient_quantity_${contador}" placeholder="Cantidad" step="1" min="1" class="form-control" style="width: 120px;">
+            </div>
         `;
         document.getElementById('ingredientes').appendChild(div);
         contador++;

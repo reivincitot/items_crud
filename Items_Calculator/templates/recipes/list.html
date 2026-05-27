@@ -2,16 +2,25 @@
 {% block title %}Lista de Recetas{% endblock %}
 {% block content %}
 <h1>Recetas</h1>
+
+{% if ultima_receta %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    <strong>Última receta creada:</strong> {{ ultima_receta }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
 <a href="{% url 'recipe_create' %}" class="btn btn-primary mb-3">+ Nueva Receta</a>
+
 <ul class="list-group">
     {% for recipe in recipes %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
-    {{ recipe.recipe_name }} (produce: {{ recipe.produced_item.name }})
-    <div>
-        <a href="{% url 'recipe_edit' recipe.id %}" class="btn btn-sm btn-info">Editar</a>
-        <a href="{% url 'recipe_detail' recipe.id %}" class="btn btn-sm btn-secondary">Ver</a>
-    </div>
-</li>
+            {{ recipe.recipe_name }} (produce: {{ recipe.produced_item.name }})
+            <div>
+                <a href="{% url 'recipe_edit' recipe.id %}" class="btn btn-sm btn-info">Editar</a>
+                <a href="{% url 'recipe_detail' recipe.id %}" class="btn btn-sm btn-secondary">Ver</a>
+            </div>
+        </li>
     {% endfor %}
 </ul>
 {% endblock %}

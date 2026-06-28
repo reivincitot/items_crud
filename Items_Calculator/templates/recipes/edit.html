@@ -5,15 +5,12 @@
         <h1>Editar Receta</h1>
     </div>
     <div class="card-body">
-        <form method="post">
+        <form method="post" id="editRecipeForm">
             {% csrf_token %}
-            <!-- Nombre de la receta -->
             <div class="mb-3">
                 <label class="form-label">Nombre de la receta:</label>
                 <input type="text" name="recipe_name" class="form-control" value="{{ recipe.recipe_name }}" required>
             </div>
-
-            <!-- Item producido (autocompletado con el nombre actual precargado) -->
             <div class="mb-3">
                 <label class="form-label">Item producido:</label>
                 <input list="fabricable-items" name="produced_item_name" class="form-control" value="{{ recipe.produced_item.name }}" required>
@@ -23,16 +20,18 @@
                     {% endfor %}
                 </datalist>
             </div>
-
             <h3>Ingredientes</h3>
             <div id="ingredientes">
                 {% for ing in recipe.ingredients.all %}
-                <div class="ingrediente mb-2 row g-2">
+                <div class="ingrediente mb-2 row g-2" data-index="{{ forloop.counter0 }}">
                     <div class="col">
                         <input list="items-list" name="ingredient_item_{{ forloop.counter0 }}" class="form-control" value="{{ ing.item.name }}">
                     </div>
                     <div class="col-auto">
                         <input type="number" name="ingredient_quantity_{{ forloop.counter0 }}" value="{{ ing.quantity }}" class="form-control" style="width: 120px;">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-danger btn-sm eliminar-ingrediente">🗑️</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -45,7 +44,6 @@
     </div>
 </div>
 
-<!-- Datalist compartido para todos los ingredientes -->
 <datalist id="items-list">
     {% for item in all_items %}
         <option value="{{ item.name }}">
@@ -57,6 +55,7 @@
     document.getElementById('agregar_ingrediente').onclick = function() {
         let div = document.createElement('div');
         div.className = 'ingrediente mb-2 row g-2';
+        div.dataset.index = contador;
         div.innerHTML = `
             <div class="col">
                 <input list="items-list" name="ingredient_item_${contador}" class="form-control" placeholder="Buscar item...">
@@ -64,9 +63,21 @@
             <div class="col-auto">
                 <input type="number" name="ingredient_quantity_${contador}" placeholder="Cantidad" step="1" min="1" class="form-control" style="width: 120px;">
             </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-danger btn-sm eliminar-ingrediente">🗑️</button>
+            </div>
         `;
         document.getElementById('ingredientes').appendChild(div);
         contador++;
+        div.querySelector('.eliminar-ingrediente').addEventListener('click', function() {
+            div.remove();
+        });
     };
+
+    document.querySelectorAll('.eliminar-ingrediente').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.closest('.ingrediente').remove();
+        });
+    });
 </script>
 {% endblock %}

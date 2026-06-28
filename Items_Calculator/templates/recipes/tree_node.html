@@ -1,12 +1,67 @@
-<ul>
-    <li>
-        <strong>{{ node.nombre }}</strong> ({{ node.cantidad }})
+{% load humanize %}
+
+{% for item_id, node in node.items %}
+    <div class="recipe-node mb-3">
+        <!-- Encabezado -->
+        <div class="d-flex align-items-center">
+            <strong>{{ node.nombre }}</strong>
+            <span class="ms-2 text-muted">(cantidad a fabricar: {{ node.cantidad|intcomma }})</span>
+            {% if node.ingredientes %}
+                <button class="btn btn-sm btn-outline-primary ms-3 toggle-btn" 
+                        type="button" data-bs-toggle="collapse" 
+                        data-bs-target="#collapse-{{ item_id }}">
+                    🔽 Ver receta
+                </button>
+            {% endif %}
+            <!-- Checkbox "Fabricado" (opcional, lo dejamos) -->
+            {% if node.cantidad > 0 %}
+                <span class="ms-3">
+                    <input type="checkbox" class="form-check-input fabricado-check" 
+                           data-item-name="{{ node.nombre }}" data-cantidad="{{ node.cantidad }}">
+                    <label class="form-check-label">Fabricado</label>
+                </span>
+            {% endif %}
+        </div>
+
+        <!-- Contenido de la receta (colapsable) -->
         {% if node.ingredientes %}
-            <ul>
-                {% for hijo in node.ingredientes %}
-                    {% include "recipes/tree_node.html" with node=hijo %}
-                {% endfor %}
-            </ul>
+            <div class="collapse mt-2" id="collapse-{{ item_id }}">
+                <div class="card card-body bg-light">
+                    <!-- Receta por unidad -->
+                    <h6>📦 Receta por unidad:</h6>
+                    <ul>
+                        {% for ing_id, ing in node.ingredientes.items %}
+                            <li>{{ ing.nombre }}: {{ ing.cantidad_unitaria|intcomma }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Ingredientes totales -->
+                    <h6>🔢 Ingredientes totales para fabricar {{ node.cantidad|intcomma }} unidades:</h6>
+                    <ul>
+                        {% for ing_id, ing in node.ingredientes.items %}
+                            <li>{{ ing.nombre }}: {{ ing.cantidad|intcomma }} ({{ ing.cantidad_unitaria|intcomma }} por unidad)</li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Sub-recetas (si algún ingrediente es fabricable) -->
+                    {% for ing_id, ing in node.ingredientes.items %}
+                        {% if ing.sub_receta %}
+                            <div class="sub-receta mt-2">
+                                <button class="btn btn-sm btn-outline-secondary toggle-btn" 
+                                        type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse-sub-{{ ing_id }}">
+                                    🔽 Ver receta de {{ ing.nombre }}
+                                </button>
+                                <div class="collapse mt-2" id="collapse-sub-{{ ing_id }}">
+                                    <div class="card card-body">
+                                        {% include 'recipes/tree_node.html' with node=ing.sub_receta %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
         {% endif %}
-    </li>
-</ul>
+    </div>
+{% endfor %}

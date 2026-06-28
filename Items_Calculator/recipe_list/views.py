@@ -10,17 +10,14 @@ def home(request):
     ultima_receta = request.session.get('ultima_receta', None)
     return render(request, 'home.html', {'ultima_receta': ultima_receta})
 
-def home(request):
-    ultima_receta = request.session.get('ultima_receta', None)
-    return render(request, 'home.html', {'ultima_receta': ultima_receta})
-
 def calcular(request):
-    resultado = None
+    recetas = Recipe.objects.all().order_by('recipe_name')
     arbol = None
-    fabricar = None
+    materiales_resumen = None
+    items_con_receta = {}
     arbol_html = ''
-    recetas_context = {}
-    todos_materiales = None  # será una lista ordenada
+    receta_principal = None
+    cantidad = 1
 
     if request.method == 'POST':
         recipe_id = request.POST.get('recipe_id')
@@ -43,115 +40,64 @@ def calcular(request):
                 except Item.DoesNotExist:
                     pass
 
-        receta = get_object_or_404(Recipe, pk=recipe_id)
+        receta_principal = get_object_or_404(Recipe, pk=recipe_id)
         try:
-            calculo = calcular_materiales_con_arbol(receta.produced_item.id, cantidad, inventario)
+            calculo = calcular_materiales_con_arbol(receta_principal.produced_item.id, cantidad, inventario)
 
-            # --- Materiales base (ya descontado inventario por la función) ---
-            items_base = Item.objects.in_bulk(calculo['base'].keys())
-            base_neto = {items_base[item_id].name: cant for item_id, cant in calculo['base'].items() if item_id in items_base}
-
-            # --- Productos intermedios: cantidad bruta desde 'fabricar' ---
-            items_fabricar = Item.objects.in_bulk(calculo['fabricar'].keys())
-            fabricar_bruto = {items_fabricar[item_id].name: cant for item_id, cant in calculo['fabricar'].items() if item_id in items_fabricar}
-
-            # --- Calcular neto para intermedios (restando inventario) ---
-            fabricar_neto = {}
-            for nombre, cant_bruta in fabricar_bruto.items():
-                try:
-                    item = Item.objects.get(name=nombre)
-                    cant_inv = inventario.get(item.id, 0)
-                except Item.DoesNotExist:
-                    cant_inv = 0
-                neto = max(0, cant_bruta - cant_inv)
-                if neto > 0:
-                    fabricar_neto[nombre] = neto
-
-            # --- Construir lista unificada y ordenada (intermedios primero, luego base) ---
-            lista_materiales = []
-            # Intermedios
-            for nombre, neto in fabricar_neto.items():
-                bruto = fabricar_bruto.get(nombre, 0)
-                inv = 0
-                try:
-                    item = Item.objects.get(name=nombre)
-                    inv = inventario.get(item.id, 0)
-                except Item.DoesNotExist:
-                    pass
-                lista_materiales.append({
-                    'nombre': nombre,
-                    'tipo': 'intermedio',
-                    'bruto': bruto,
-                    'inventario': inv,
-                    'neto': neto
-                })
-            # Base
-            for nombre, neto in base_neto.items():
-                bruto = neto + (inventario.get(Item.objects.get(name=nombre).id, 0) if Item.objects.filter(name=nombre).exists() else 0)
-                inv = 0
-                try:
-                    item = Item.objects.get(name=nombre)
-                    inv = inventario.get(item.id, 0)
-                except Item.DoesNotExist:
-                    pass
-                lista_materiales.append({
-                    'nombre': nombre,
-                    'tipo': 'base',
-                    'bruto': bruto,
-                    'inventario': inv,
-                    'neto': neto
-                })
-            # Ordenar: primero intermedios (False/True o 0/1) y luego alfabético dentro de cada grupo
-            lista_materiales.sort(key=lambda x: (0 if x['tipo'] == 'intermedio' else 1, x['nombre']))
-            todos_materiales = lista_materiales   # ahora es una lista, no un dict
-
-            # --- Árbol HTML ---
-            arbol_html = arbol_a_html(calculo['arbol'])
-
-            # --- Contexto para acordeón (usar neto y calcular totales de ingredientes) ---
-            for item_id, cantidad_fab in calculo.get('fabricar', {}).items():
+            # --- Obtener todas las recetas de los items intermedios (para mostrar sub-recetas) ---
+            items_con_receta = {}
+            for item_id in calculo.get('fabricar', {}).keys():
                 try:
                     receta_intermedia = Recipe.objects.select_related('produced_item').prefetch_related('ingredients__item').get(produced_item_id=item_id)
-                    nombre_item = receta_intermedia.produced_item.name
-                    cant_neto = fabricar_neto.get(nombre_item, 0)
-                    if cant_neto > 0:
-                        # Calcular ingredientes totales necesarios para fabricar cant_neto unidades
-                        ingredientes_totales = []
-                        for ing in receta_intermedia.ingredients.all():
-                            total = ing.quantity * cant_neto
-                            ingredientes_totales.append((ing.item.name, ing.quantity, total))
-                        recetas_context[nombre_item] = {
-                            'nombre': nombre_item,
-                            'cantidad': cant_neto,
-                            'ingredientes_unitarios': [(ing.item.name, ing.quantity) for ing in receta_intermedia.ingredients.all()],
-                            'ingredientes_totales': ingredientes_totales   # lista de (nombre, unitario, total)
-                        }
+                    items_con_receta[item_id] = {
+                        'nombre': receta_intermedia.produced_item.name,
+                        'ingredientes': [(ing.item.name, ing.quantity) for ing in receta_intermedia.ingredients.all()]
+                    }
                 except Recipe.DoesNotExist:
                     pass
 
-            resultado = base_neto  # para compatibilidad
-            fabricar = fabricar_neto
+            # --- Construir lista de materiales totales (para el resumen final) ---
+            items_totales = Item.objects.in_bulk(calculo['totales'].keys())
+            materiales_resumen = []
+            for item_id, cantidad_bruta in calculo['totales'].items():
+                item = items_totales.get(item_id)
+                if item:
+                    inv = inventario.get(item_id, 0)
+                    neto = max(0, cantidad_bruta - inv)
+                    materiales_resumen.append({
+                        'nombre': item.name,
+                        'cantidad_bruta': cantidad_bruta,
+                        'inventario': inv,
+                        'cantidad_neta': neto,
+                        'es_fabricable': item.es_fabricable
+                    })
+            # Ordenar: primero fabricables, luego base, alfabético
+            materiales_resumen.sort(key=lambda x: (0 if x['es_fabricable'] else 1, x['nombre']))
+
+            # --- Árbol HTML (para la vista jerárquica) ---
+            arbol_html = arbol_a_html(calculo['arbol'])
+            arbol = calculo['arbol']  # para el template
 
         except Exception as e:
-            resultado = {'error': str(e)}
+            messages.error(request, f'Error en el cálculo: {str(e)}')
 
-    recetas = Recipe.objects.all().order_by('recipe_name')
-
-    return render(request, 'recipes/calcular.html', {
+    # Contexto para el template
+    context = {
         'recetas': recetas,
-        'resultado': resultado,
-        'fabricar': fabricar,
+        'arbol': arbol,
+        'materiales_resumen': materiales_resumen,
+        'items_con_receta': items_con_receta,
         'arbol_html': arbol_html,
-        'recetas_context': recetas_context,
-        'todos_materiales': todos_materiales,
-    })
+        'receta_principal': receta_principal,
+        'cantidad': cantidad,
+    }
+    return render(request, 'recipes/calcular.html', context)
 
-    
 def recipe_list(request):
     recipes = Recipe.objects.select_related('produced_item').all().order_by('recipe_name')
     ultima_receta = request.session.get('ultima_receta', None)
     return render(request, 'recipes/list.html', {
-        'recipes': recipes, 
+        'recipes': recipes,
         'ultima_receta': ultima_receta
     })
 
@@ -182,7 +128,6 @@ def recipe_create(request):
                     item = Item.objects.get(name=item_nombre)
                 except Item.DoesNotExist:
                     messages.error(request, f'El ingrediente "{item_nombre}" no existe.')
-                    # Opcional: eliminar la receta creada para evitar huérfanos
                     recipe.delete()
                     return redirect('recipe_create')
                 Ingredient.objects.create(recipe=recipe, item=item, quantity=int(quantity))
@@ -190,14 +135,13 @@ def recipe_create(request):
         messages.success(request, 'Receta creada exitosamente.')
         return redirect('recipe_list')
     else:
-        # GET: mostrar formulario
         fabricable_items = Item.objects.filter(es_fabricable=True).order_by('name')
         all_items = Item.objects.all().order_by('name')
         return render(request, 'recipes/create.html', {
             'fabricable_items': fabricable_items,
             'items': all_items,
         })
-        
+
 def recipe_detail(request, pk):
     recipe = get_object_or_404(Recipe, pk=pk)
     return render(request, 'recipes/detail.html', {'recipe': recipe})
@@ -238,7 +182,7 @@ def recipe_edit(request, pk):
             'fabricable_items': fabricable_items,
             'all_items': all_items,
         })
-    
+
 def arbol_a_html(arbol):
     """Convierte la estructura jerárquica del árbol en HTML anidado con números formateados."""
     if not arbol:
@@ -247,7 +191,6 @@ def arbol_a_html(arbol):
     for item_id, data in arbol.items():
         nombre = data.get('nombre', 'Desconocido')
         cantidad = data.get('cantidad', 0)
-        # Formatear número con separador de miles (puntos)
         cantidad_formateada = f"{cantidad:,}".replace(',', '.')
         ingredientes = data.get('ingredientes', {})
         html += f'<li><strong>{nombre}</strong>: {cantidad_formateada}'

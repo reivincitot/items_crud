@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% block title %}Calculadora de Materiales{% endblock %}
+
 {% block content %}
 <div class="card">
     <div class="card-header">
         <h1>Calcular materiales para receta</h1>
     </div>
     <div class="card-body">
-        <!-- Formulario principal -->
+        <!-- Formulario de selección -->
         <form method="post" id="calcularForm">
             {% csrf_token %}
             <div class="mb-3">
@@ -29,94 +30,57 @@
             <button type="submit" class="btn btn-primary">Calcular</button>
         </form>
 
-        <!-- Resultados unificados (materiales intermedios + base) -->
-        {% if todos_materiales %}
+        <!-- Resultados -->
+        {% if arbol %}
             <hr>
-            <h2>Materiales necesarios (con inventario editable)</h2>
-            <form method="post" id="inventarioForm">
-                {% csrf_token %}
-                <input type="hidden" name="recipe_id" value="{{ request.POST.recipe_id }}">
-                <input type="hidden" name="cantidad" value="{{ request.POST.cantidad }}">
 
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Material</th>
-                                <th>Tipo</th>
-                                <th>Cantidad bruta</th>
-                                <th>En inventario</th>
-                                <th>Cantidad neta</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for material in todos_materiales %}
-                            <tr>
-                                <td><strong>{{ material.nombre }}</strong></td>
-                                <td>{% if material.tipo == 'intermedio' %}🔧 Fabricable{% else %}🌿 Base{% endif %}</td>
-                                <td class="bruta" data-nombre="{{ material.nombre }}">{{ material.bruto|intcomma }}</td>
-                                <td><input type="number" class="form-control inventario-input" data-nombre="{{ material.nombre }}" value="{{ material.inventario }}" min="0" step="1" style="width: 120px;"></td>
-                                <td class="neta" data-nombre="{{ material.nombre }}">{{ material.neto|intcomma }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <button type="submit" class="btn btn-success" id="aplicarInventario">Recalcular con inventario</button>
-            </form>
+            <!-- ===================== ÁRBOL JERÁRQUICO DE RECETAS ===================== -->
+            <h2>Estructura de la receta</h2>
+            <div class="recipe-tree">
+                {% include 'recipes/tree_node.html' with node=arbol %}
+            </div>
 
-            <!-- Acordeón para productos intermedios (usa directamente recetas_context) -->
-            {% if recetas_context %}
-                <hr>
-                <h2>Productos intermedios a fabricar (cantidades netas):</h2>
-                <div class="accordion" id="accordionRecetas">
-                    {% for nombre, receta_data in recetas_context.items %}
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false">
-                                <strong>{{ receta_data.nombre }}</strong> (cantidad a fabricar: {{ receta_data.cantidad|intcomma }})
-                                <span class="ms-3">
-                                    <input type="checkbox" class="form-check-input fabricado-check" data-item-name="{{ receta_data.nombre }}" data-cantidad="{{ receta_data.cantidad }}">
-                                    <label class="form-check-label">Fabricado</label>
-                                </span>
-                            </button>
-                        </h2>
-                        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse" data-bs-parent="#accordionRecetas">
-                            <div class="accordion-body">
-                                <h6>📦 Receta por unidad:</h6>
-                                <ul>
-                                    {% for ing_nombre, ing_cantidad in receta_data.ingredientes_unitarios %}
-                                        <li>{{ ing_nombre }}: {{ ing_cantidad|intcomma }}</li>
-                                    {% endfor %}
-                                </ul>
-                                <h6>🔨 Ingredientes totales para fabricar {{ receta_data.cantidad|intcomma }} unidades:</h6>
-                                <ul>
-                                    {% for ing_nombre, ing_unitario, ing_total in receta_data.ingredientes_totales %}
-                                        <li>{{ ing_nombre }}: {{ ing_total|intcomma }} ({{ ing_unitario|intcomma }} por unidad)</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                <button id="finalizarProduccion" class="btn btn-warning mt-3">Finalizar producción (limpiar checklist)</button>
-            {% endif %}
-
-            <!-- Árbol completo -->
+            <!-- ===================== RESUMEN DE MATERIALES BASE ===================== -->
             <hr>
-            <h2>Estructura completa de la receta:</h2>
-            <div class="tree-view">{{ arbol_html|safe }}</div>
+            <h2>Resumen total de materiales base necesarios</h2>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Cantidad bruta</th>
+                            <th>En inventario</th>
+                            <th>Cantidad neta</th>
+                            <th>Tipo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for material in materiales_resumen %}
+                        <tr>
+                            <td><strong>{{ material.nombre }}</strong></td>
+                            <td>{{ material.cantidad_bruta|intcomma }}</td>
+                            <td>
+                                <input type="number" class="form-control inventario-input" 
+                                       data-nombre="{{ material.nombre }}" 
+                                       value="{{ material.inventario }}" 
+                                       min="0" step="1" style="width: 100px;">
+                            </td>
+                            <td class="neta" data-nombre="{{ material.nombre }}">
+                                {{ material.cantidad_neta|intcomma }}
+                            </td>
+                            <td>{% if material.es_fabricable %}🔧 Fabricable{% else %}🌿 Base{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <button id="aplicarInventario" class="btn btn-success">Recalcular con inventario</button>
+
         {% endif %}
     </div>
 </div>
 
-<style>
-    .tree-view ul { margin-left: 20px; list-style: none; }
-    .tree-view li { margin: 5px 0; }
-    .neta { background-color: #fff3cd; }
-</style>
-
+<!-- Scripts (autocompletado, inventario, etc.) -->
 <script>
     // Sincronización del autocompletado de recetas
     const recetaInput = document.getElementById('recetaInput');
@@ -146,17 +110,22 @@
 
     // Actualizar cantidad neta en la tabla
     function actualizarNeta(fila) {
-        const bruta = parseInt(fila.querySelector('.bruta').innerText.replace(/\./g, ''));
+        const bruta = parseInt(fila.querySelector('td:nth-child(2)').innerText.replace(/\./g, ''));
         const inventario = parseInt(fila.querySelector('.inventario-input').value) || 0;
         const neta = Math.max(0, bruta - inventario);
         fila.querySelector('.neta').innerText = neta.toLocaleString('es-ES');
+        if (neta === 0) {
+            fila.classList.add('table-secondary');
+        } else {
+            fila.classList.remove('table-secondary');
+        }
     }
 
     document.querySelectorAll('.inventario-input').forEach(input => {
         input.addEventListener('input', function() { actualizarNeta(this.closest('tr')); });
     });
 
-    // Enviar formulario de inventario
+    // Botón "Recalcular con inventario"
     document.getElementById('aplicarInventario')?.addEventListener('click', function(e) {
         e.preventDefault();
         let inventarioObj = {};
@@ -192,21 +161,14 @@
         document.body.appendChild(form);
         form.submit();
     });
-
-    // Persistencia de checkboxes "Fabricado"
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.fabricado-check').forEach(cb => {
-            const key = `fabricado_${cb.dataset.itemName}`;
-            const saved = localStorage.getItem(key);
-            if (saved === 'true') cb.checked = true;
-            cb.addEventListener('change', function() {
-                localStorage.setItem(key, this.checked);
-            });
-        });
-    });
-    document.getElementById('finalizarProduccion')?.addEventListener('click', function() {
-        Object.keys(localStorage).filter(k => k.startsWith('fabricado_')).forEach(k => localStorage.removeItem(k));
-        location.reload();
-    });
 </script>
+
+<style>
+    .neta { background-color: #fff3cd; }
+    .table-secondary { background-color: #e9ecef; text-decoration: line-through; opacity: 0.7; }
+    .recipe-tree ul { list-style: none; padding-left: 20px; }
+    .recipe-tree li { margin: 5px 0; }
+    .recipe-tree .toggle-btn { cursor: pointer; color: #0d6efd; margin-left: 10px; }
+    .recipe-tree .sub-receta { margin-left: 30px; }
+</style>
 {% endblock %}

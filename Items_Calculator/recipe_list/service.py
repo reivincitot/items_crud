@@ -1,7 +1,12 @@
+import math
 from django.core.exceptions import ValidationError
 from .models import Recipe
 
 def calcular_materiales_con_arbol(item_id, cantidad_deseada, inventario=None, visited=None):
+    """
+    Devuelve diccionario con 'totales', 'base', 'arbol', 'fabricar'.
+    Ahora considera `produces_quantity` de cada receta para calcular lotes.
+    """
     if inventario is None:
         inventario = {}
     if visited is None:
@@ -13,7 +18,9 @@ def calcular_materiales_con_arbol(item_id, cantidad_deseada, inventario=None, vi
 
     try:
         receta = Recipe.objects.select_related('produced_item').prefetch_related('ingredients__item').get(produced_item_id=item_id)
+        produces_quantity = receta.produces_quantity  # ← nuevo: rendimiento por lote
     except Recipe.DoesNotExist:
+        # Item base: no tiene receta
         return {
             'totales': {item_id: cantidad_deseada},
             'base': {item_id: cantidad_deseada},
@@ -21,13 +28,20 @@ def calcular_materiales_con_arbol(item_id, cantidad_deseada, inventario=None, vi
             'fabricar': {}
         }
 
+    # Calcular cuántos lotes se necesitan para obtener la cantidad deseada
+    lotes = math.ceil(cantidad_deseada / produces_quantity)
+
     totales = {}
     base = {}
     fabricar = {}
     arbol_ingredientes = {}
 
     for ing in receta.ingredients.all():
-        sub = calcular_materiales_con_arbol(ing.item_id, ing.quantity * cantidad_deseada, inventario, visited.copy())
+        # Cantidad de este ingrediente necesaria para todos los lotes
+        cantidad_ingrediente = ing.quantity * lotes
+        sub = calcular_materiales_con_arbol(ing.item_id, cantidad_ingrediente, inventario, visited.copy())
+
+        # Acumular totales
         for k, v in sub['totales'].items():
             totales[k] = totales.get(k, 0) + v
         for k, v in sub['base'].items():
@@ -36,14 +50,16 @@ def calcular_materiales_con_arbol(item_id, cantidad_deseada, inventario=None, vi
             fabricar[k] = fabricar.get(k, 0) + v
 
         if sub['arbol']:
-            fabricar[ing.item_id] = fabricar.get(ing.item_id, 0) + ing.quantity * cantidad_deseada
+            fabricar[ing.item_id] = fabricar.get(ing.item_id, 0) + cantidad_ingrediente
 
         arbol_ingredientes[ing.item_id] = {
             'nombre': ing.item.name,
-            'cantidad': ing.quantity * cantidad_deseada,
-            'cantidad_unitaria': ing.quantity,   # ← NUEVO: cantidad por unidad
+            'cantidad': cantidad_ingrediente,
+            'cantidad_unitaria': ing.quantity,   # cantidad por lote
             'es_base': not sub['arbol'],
-            'sub_receta': sub['arbol'] if sub['arbol'] else None
+            'sub_receta': sub['arbol'] if sub['arbol'] else None,
+            'lotes': lotes,                      # ← para mostrar en plantilla
+            'produces_quantity': produces_quantity,
         }
 
     # Restar inventario
@@ -54,16 +70,20 @@ def calcular_materiales_con_arbol(item_id, cantidad_deseada, inventario=None, vi
             if item_id in base:
                 base[item_id] = max(0, base.get(item_id, 0) - restar)
 
+    # Eliminar cantidades cero
     totales = {k: v for k, v in totales.items() if v > 0}
     base = {k: v for k, v in base.items() if v > 0}
     fabricar = {k: v for k, v in fabricar.items() if v > 0}
 
+    # Árbol del producto principal
     arbol = {
         item_id: {
             'nombre': receta.produced_item.name,
             'cantidad': cantidad_deseada,
-            'cantidad_unitaria': 1,   # ← NUEVO: la raíz siempre es 1 unidad
-            'ingredientes': arbol_ingredientes
+            'cantidad_unitaria': 1,
+            'ingredientes': arbol_ingredientes,
+            'lotes': lotes,
+            'produces_quantity': produces_quantity,
         }
     }
 

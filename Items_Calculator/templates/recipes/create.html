@@ -7,13 +7,13 @@
     <div class="card-body">
         <form method="post">
             {% csrf_token %}
-            <!-- Campo: nombre de la receta -->
+            <!-- Nombre de la receta -->
             <div class="mb-3">
                 <label class="form-label">Nombre de la receta:</label>
                 <input type="text" name="recipe_name" class="form-control" required>
             </div>
 
-            <!-- Campo: item producido (autocompletado) -->
+            <!-- Item producido (autocompletado) -->
             <div class="mb-3">
                 <label class="form-label">Item producido:</label>
                 <input list="fabricable-items" name="produced_item_name" class="form-control" required placeholder="Escribe para buscar...">
@@ -22,6 +22,13 @@
                         <option value="{{ item.name }}">
                     {% endfor %}
                 </datalist>
+            </div>
+
+            <!-- ✨ NUEVO: Cantidad producida por lote -->
+            <div class="mb-3">
+                <label class="form-label">Cantidad producida por lote:</label>
+                <input type="number" name="produces_quantity" class="form-control" value="1" min="1" step="1">
+                <small class="form-text text-muted">Ej. Si al fabricar obtienes 3 unidades por cada lote, ingresa 3.</small>
             </div>
 
             <h3>Ingredientes</h3>

@@ -56,21 +56,44 @@ def calcular(request):
                 except Recipe.DoesNotExist:
                     pass
 
-            # --- Construir lista de materiales totales (para el resumen final) ---
+            # --- Construir lista de materiales totales (base + intermedios) ---
+            # Obtener todos los items involucrados: totales (base) y fabricar (intermedios)
             items_totales = Item.objects.in_bulk(calculo['totales'].keys())
-            materiales_resumen = []
+            items_fabricar = Item.objects.in_bulk(calculo['fabricar'].keys())
+
+            # Crear diccionario combinado: prioridad a totales, pero añadir fabricar si no está en totales
+            materiales_combined = {}
             for item_id, cantidad_bruta in calculo['totales'].items():
-                item = items_totales.get(item_id)
+                materiales_combined[item_id] = {
+                    'cantidad': cantidad_bruta,
+                    'es_fabricable': False  # base (no tiene receta)
+                }
+            for item_id, cantidad_bruta in calculo['fabricar'].items():
+                if item_id not in materiales_combined:
+                    materiales_combined[item_id] = {
+                        'cantidad': cantidad_bruta,
+                        'es_fabricable': True  # intermedio fabricable
+                    }
+                else:
+                    # Si ya está en totales, significa que también es base? Pero en realidad si tiene receta, no debería estar en totales.
+                    # Si está en ambos, podría ser un item que es base pero también se fabrica? (caso raro). Lo dejamos como base.
+                    pass
+
+            materiales_resumen = []
+            for item_id, data in materiales_combined.items():
+                # Buscar el item en los dos diccionarios
+                item = items_totales.get(item_id) or items_fabricar.get(item_id)
                 if item:
                     inv = inventario.get(item_id, 0)
-                    neto = max(0, cantidad_bruta - inv)
+                    neto = max(0, data['cantidad'] - inv)
                     materiales_resumen.append({
                         'nombre': item.name,
-                        'cantidad_bruta': cantidad_bruta,
+                        'cantidad_bruta': data['cantidad'],
                         'inventario': inv,
                         'cantidad_neta': neto,
-                        'es_fabricable': item.es_fabricable
+                        'es_fabricable': data['es_fabricable']
                     })
+
             # Ordenar: primero fabricables, luego base, alfabético
             materiales_resumen.sort(key=lambda x: (0 if x['es_fabricable'] else 1, x['nombre']))
 
@@ -105,6 +128,7 @@ def recipe_create(request):
     if request.method == 'POST':
         recipe_name = request.POST.get('recipe_name')
         produced_item_name = request.POST.get('produced_item_name')
+        produces_quantity = int(request.POST.get('produces_quantity', 1))
         try:
             produced_item = Item.objects.get(name=produced_item_name, es_fabricable=True)
         except Item.DoesNotExist:
@@ -112,7 +136,11 @@ def recipe_create(request):
             return redirect('recipe_create')
         # Crear receta
         try:
-            recipe = Recipe(recipe_name=recipe_name, produced_item=produced_item)
+            recipe = Recipe(
+                recipe_name=recipe_name, 
+                produced_item=produced_item,
+                produces_quantity=produces_quantity
+                )
             recipe.save()
             request.session['ultima_receta'] = recipe.recipe_name
         except IntegrityError:
@@ -151,12 +179,17 @@ def recipe_edit(request, pk):
     if request.method == 'POST':
         recipe.recipe_name = request.POST['recipe_name']
         produced_item_name = request.POST.get('produced_item_name')
+        recipe.produces_quantity = int(request.POST.get('produces_quantity', 1))
+        
+        produced_item_name = request.POST.get('produced_item_name')        
         try:
             produced_item = Item.objects.get(name=produced_item_name, es_fabricable=True)
         except Item.DoesNotExist:
             messages.error(request, f'El item "{produced_item_name}" no existe o no es fabricable.')
             return redirect('recipe_edit', pk=pk)
         recipe.produced_item = produced_item
+        produces_quantity = int(request.POST.get('produces_quantity', 1))
+        recipe.produces_quantity = produces_quantity
         recipe.save()
         # Reemplazar ingredientes
         recipe.ingredients.all().delete()

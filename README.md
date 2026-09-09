@@ -1,84 +1,125 @@
 # 📦 Gestor de Recetas - Black Desert Craft
 
-Sistema de gestión de recetas de crafteo para el videojuego **Black Desert**.  
-Permite crear items, definir recetas (con ingredientes y sub-recetas), y calcular automáticamente los materiales necesarios para fabricar una cantidad deseada, teniendo en cuenta el inventario disponible y mostrando la jerarquía completa de producción.
+Sistema de gestión de recetas de crafteo para **Black Desert**. Permite crear items, definir recetas con ingredientes y sub-recetas, y calcular los materiales necesarios para fabricar una cantidad determinada teniendo en cuenta el inventario disponible.
 
----
+## Tecnologías
 
-## 🧠 ¿Qué hace este programa?
+- Python 3.10+
+- Django 4.2
+- SQLite para despliegue gratuito / PostgreSQL opcional para desarrollo local
+- Django ORM
+- HTML5 + Bootstrap 5 (CDN)
 
-- **CRUD de items** (con categorías, tipos, subtipos y flag `es_fabricable`).
-- **CRUD de recetas**: cada receta produce **1 unidad** de un item fabricable y puede usar cualquier otro item como ingrediente (base o fabricable).
-- **Cálculo recursivo de materiales**:
-  - Dada una receta final y una cantidad, descompone recursivamente todos los niveles de sub‑recetas.
-  - Muestra:
-    - Materiales base necesarios (sin receta).
-    - Productos intermedios a fabricar.
-    - Estructura jerárquica completa (árbol de producción).
-  - Permite restar **inventario inicial** para ajustar las cantidades finales.
-- **Interfaz web amigable**:
-  - Formularios con autocompletado (`<datalist>`) para seleccionar items (no `<select>` masivos).
-  - Mensajes flash de éxito/error.
-  - Label que indica la **última receta creada** en la lista de recetas.
-  - Página de inicio con accesos directos.
+## Despliegue gratuito en PythonAnywhere
 
----
+La rama `pythonanywhere-free` está preparada para ejecutar la aplicación con SQLite, evitando la dependencia de PostgreSQL.
 
-## 🛠️ Tecnologías utilizadas
+### 1. Clonar el repositorio
 
-| Capa          | Tecnología                                        |
-|---------------|---------------------------------------------------|
-| Backend       | Python 3.14 + Django 4.2                         |
-| Base de datos | PostgreSQL 18 (puede cambiarse a SQLite)         |
-| ORM           | Django ORM                                        |
-| Frontend      | HTML5 + Bootstrap 5 (CDN)                        |
-| Autocompletado| Datalist nativo del navegador                    |
-| Servidor      | Django `runserver` (desarrollo)                  |
+En una consola Bash de PythonAnywhere:
 
----
+```bash
+git clone -b pythonanywhere-free https://github.com/reivincitot/items_crud.git
+cd items_crud/Items_Calculator
+```
 
-## 🚀 Estado actual del proyecto
+### 2. Crear entorno virtual con Python 3.10
 
-### ✅ Funcionalidades completadas
+```bash
+mkvirtualenv --python=/usr/bin/python3.10 items-crud-env
+pip install -r ../../requirements.txt
+```
 
-- [x] Modelos `Item`, `Recipe`, `Ingredient`, `Category`, `Type`, `Subtype`.
-- [x] Vistas CRUD públicas para items y recetas (sin usar el admin de Django).
-- [x] Normalización de nombres de items (elimina acentos, puntuación, espacios múltiples y capitaliza).
-- [x] Restricción de unicidad en nombres de items y recetas.
-- [x] Captura de errores de duplicado con mensajes amigables.
-- [x] Campo `es_fabricable` para filtrar qué items pueden ser producidos.
-- [x] Cálculo recursivo de materiales con detección de ciclos.
-- [x] Inventario inicial (formato "nombre: cantidad" por línea).
-- [x] Visualización jerárquica del árbol de producción (HTML generado recursivamente).
-- [x] Autocompletado en todos los selects de items (input + datalist).
-- [x] Ordenación alfabética en listas y desplegables.
-- [x] Mensaje de "última receta creada" almacenado en sesión.
-- [x] Página de detalle de receta.
+Si el comando anterior no coincide con la ruta de Python disponible en tu cuenta, selecciona Python 3.10 al crear el virtualenv desde PythonAnywhere y utiliza ese entorno.
 
-### 🧪 Próximas mejoras planificadas
+### 3. Migrar SQLite
 
-- [ ] Edición/eliminación de categorías, tipos y subtipos desde la interfaz pública.
-- [ ] Búsqueda avanzada en listados.
-- [ ] Exportación de resultados de cálculo a PDF o Excel.
-- [ ] Soporte para recetas que produzcan más de 1 unidad por lote.
-- [ ] Validación de que un item fabricable siempre tenga una receta.
-- [ ] Pruebas unitarias y de integración.
+```bash
+python manage.py migrate
+```
 
----
+### 4. Crear usuario administrador (opcional)
 
-## 📦 Instalación y ejecución local
+```bash
+python manage.py createsuperuser
+```
 
-### Requisitos previos
+### 5. Recopilar archivos estáticos
 
-- Python 3.10 o superior.
-- PostgreSQL (o SQLite para versión portátil).
-- Entorno virtual (recomendado).
+```bash
+python manage.py collectstatic --noinput
+```
 
-### Pasos
+### 6. Configuración de la aplicación web
 
-1. **Clonar el repositorio** (o copiar los archivos).
-2. **Crear y activar entorno virtual**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate   # Linux/Mac
-   venv\Scripts\activate      # Windows
+- Framework: Django
+- Python: 3.10
+- Virtualenv: `items-crud-env`
+- WSGI: `Items_Calculator/Items_Calculator/wsgi.py`
+- Directorio de trabajo: `.../items_crud/Items_Calculator`
+
+En el archivo WSGI de PythonAnywhere, añade la ruta del proyecto si es necesario:
+
+```python
+import os
+import sys
+
+path = '/home/TU_USUARIO/items_crud/Items_Calculator'
+if path not in sys.path:
+    sys.path.insert(0, path)
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Items_Calculator.settings')
+
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
+```
+
+Configura las variables de entorno de producción:
+
+```text
+DJANGO_DEBUG=False
+DJANGO_SECRET_KEY=<una-clave-secreta-nueva>
+DJANGO_ALLOWED_HOSTS=<tu-usuario>.pythonanywhere.com
+DJANGO_DB=sqlite
+```
+
+### Archivos estáticos
+
+En la sección Static files de PythonAnywhere:
+
+```text
+URL: /static/
+Directory: /home/TU_USUARIO/items_crud/Items_Calculator/staticfiles
+```
+
+Luego recarga la aplicación web.
+
+## Desarrollo local con PostgreSQL
+
+Si quieres continuar usando PostgreSQL en tu PC, instala las dependencias correspondientes y configura:
+
+```text
+DJANGO_DB=postgresql
+POSTGRES_DB=recipes_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=tu-clave
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+```
+
+La configuración de Django seleccionará PostgreSQL cuando `DJANGO_DB=postgresql`; de lo contrario utilizará SQLite.
+
+## Funcionalidades
+
+- CRUD de items.
+- Categorías, tipos y subtipos.
+- Indicador de item fabricable.
+- CRUD de recetas.
+- Recetas con múltiples ingredientes.
+- Recetas que pueden producir más de una unidad por lote.
+- Cálculo recursivo de materiales.
+- Detección de ciclos en recetas.
+- Inventario inicial para descontar materiales.
+- Árbol jerárquico de producción.
+- Autocompletado de items.
+- Mensajes de éxito y error.

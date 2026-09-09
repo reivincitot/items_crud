@@ -2,3 +2,13 @@ __pycache__/
 *.pyc
 env/
 venv/
+.venv/
+
+# Local database
+*.sqlite3
+
+# Environment / secrets
+.env
+
+# Django generated static files
+staticfiles/
